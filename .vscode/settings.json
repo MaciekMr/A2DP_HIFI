@@ -1,0 +1,11 @@
+{
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "files.associations": {
+    "bluetootha2dpsink32.h": "c",
+    "bluetootha2dpsink.h": "c",
+    "bluetootha2dpcommon.h": "c",
+    "algorithm": "cpp",
+    "i2s.h": "c"
+  },
+  "idf.adapterTargetName": "esp32"
+}
