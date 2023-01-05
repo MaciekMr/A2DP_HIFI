@@ -15,6 +15,8 @@
 #include "esp_gap_bt_api.h"
 #include "esp_a2dp_api.h"
 #include "esp_avrc_api.h"
+#include "driver/i2s.h"
+#include "esp_spp_api.h"
 #include "BluetoothA2DPSink32.h"
 
 
@@ -35,5 +37,5 @@ void setup() {
 
 void app_main(void)
 {
-
+  setup();
 }

@@ -20,10 +20,11 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-//#include "driver/i2s_types_legacy.h"
-#include "driver/i2s_std.h"
+#include "driver/i2s_types_legacy.h"
+//#include "driver/i2s_std.h"
+
 #include "driver/gpio.h"
-#include "a2dp_component/BluetoothA2DPCommon.h"
+#include "BluetoothA2DPCommon.h"
 #include "freertos/ringbuf.h"
 
 /*
@@ -106,13 +107,14 @@ class BluetoothA2DPSink : public BluetoothA2DPCommon {
     virtual ~BluetoothA2DPSink();
     /// Define the pins
     virtual void set_pin_config(i2s_pin_config_t pin_config);
+    //virtual void set_pin_config(i2s_std_gpio_config_t pin_config);
    
     /// Define an alternative i2s port other then 0 
     virtual void set_i2s_port(i2s_port_t i2s_num);
    
     /// Define the i2s configuration
-    //virtual void set_i2s_config(i2s_config_t i2s_config);
-    virtual void set_i2s_config(i2s_std_config_t i2s_config);
+    virtual void set_i2s_config(i2s_config_t i2s_config);
+    //virtual void set_i2s_config(i2s_std_config_t i2s_config);
 
     /// starts the I2S bluetooth sink with the inidicated name
     virtual void start(const char* name, bool auto_reconect);
@@ -185,8 +187,8 @@ class BluetoothA2DPSink : public BluetoothA2DPCommon {
         volume_control()->set_mono_downmix(enabled);
     }
     /// Defines the bits per sample for output (if > 16 output will be expanded)
-    //virtual void set_bits_per_sample(int bps) { i2s_config.bits_per_sample = (i2s_bits_per_sample_t) bps; }
-    virtual void set_bits_per_sample(uint32_t bps) { i2s_config. clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(bps); }
+    virtual void set_bits_per_sample(int bps) { i2s_config.bits_per_sample = (i2s_bits_per_sample_t) bps; }
+    //virtual void set_bits_per_sample(uint32_t bps) { i2s_config.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(bps); }
     
     /// Provides the actually set data rate (in samples per second)
     virtual uint16_t sample_rate();
@@ -278,9 +280,10 @@ class BluetoothA2DPSink : public BluetoothA2DPCommon {
     QueueHandle_t app_task_queue = nullptr;
     TaskHandle_t app_task_handle = nullptr;
 
-    //i2s_config_t i2s_config;
-    i2s_std_config_t i2s_config;
-    i2s_pin_config_t pin_config;    
+    i2s_config_t i2s_config;
+    //i2s_std_config_t i2s_config;
+    i2s_pin_config_t pin_config; 
+    //i2s_std_gpio_config_t pin_config;
     const char * bt_name = nullptr;
     uint32_t m_pkt_cnt = 0;
     //esp_a2d_audio_state_t m_audio_state = ESP_A2D_AUDIO_STATE_STOPPED;
@@ -288,10 +291,10 @@ class BluetoothA2DPSink : public BluetoothA2DPCommon {
     char pin_code_str[20] = {0};
     bool is_i2s_output = true;
     bool player_init = false;
-    //i2s_channel_t i2s_channels = I2S_CHANNEL_STEREO;
-    i2s_slot_mode_t i2s_channels = I2S_SLOT_MODE_STEREO;
+    i2s_channel_t i2s_channels = I2S_CHANNEL_STEREO;
+    //i2s_slot_mode_t i2s_channels = I2S_SLOT_MODE_STEREO;
     i2s_port_t i2s_port = I2S_NUM_0; 
-    i2s_chan_config_t i2s_channel_config = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);;
+    //i2s_chan_config_t i2s_channel_config = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);;
     i2s_chan_handle_t tx_chan;
     int connection_rety_count = 0;
     static const esp_spp_mode_t esp_spp_mode = ESP_SPP_MODE_CB;

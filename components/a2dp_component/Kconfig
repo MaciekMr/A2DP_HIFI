@@ -1,0 +1,9 @@
+menu "A2DP HIFI Configuration"
+
+    config ENABLE_A2DP_HIFI
+        prompt "A2DP HIFI"
+        bool "A2DP_HIFI"
+        help
+            Select to use A2DP HIFI component
+
+endmenu

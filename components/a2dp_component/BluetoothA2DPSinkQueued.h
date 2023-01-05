@@ -1,6 +1,6 @@
 #pragma once
 
-#include "a2dp_component/BluetoothA2DPSink.h"
+#include "BluetoothA2DPSink.h"
 
 /**
  * @brief The BluetoothA2DPSinkQueued is using a separate Task with an additinal Queue to write the I2S data.
@@ -27,7 +27,7 @@ class BluetoothA2DPSinkQueued : public BluetoothA2DPSink {
         }
 
     protected:
-        xTaskHandle s_bt_i2s_task_handle = nullptr;  /* handle of I2S task */
+        TaskHandle_t s_bt_i2s_task_handle = nullptr;  /* handle of I2S task */
         RingbufHandle_t s_ringbuf_i2s = nullptr;     /* handle of ringbuffer for I2S */
         // I2S task
         int i2s_stack_size = 2048;

@@ -12,8 +12,8 @@
 // limitations under the License.
 //
 // Copyright 2020 Phil Schatzmann
-
-#include "a2dp_component/BluetoothA2DPCommon.h"
+#include "esp_timer.h"
+#include "BluetoothA2DPCommon.h"
 
 esp_a2d_audio_state_t BluetoothA2DPCommon::get_audio_state() {
   return audio_state;
@@ -240,7 +240,7 @@ void BluetoothA2DPCommon::debounce(void(*cb)(void),int ms){
 
 /// Logs the free heap
 void BluetoothA2DPCommon::log_free_heap() {
-    ESP_LOGI(BT_AV_TAG, "Available Heap: %zu", esp_get_free_heap_size());
+    ESP_LOGI(BT_AV_TAG, "Available Heap: %zu", (size_t) esp_get_free_heap_size());
 }
 
 /// converts esp_a2d_connection_state_t to a string

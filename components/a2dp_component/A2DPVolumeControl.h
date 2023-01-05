@@ -15,7 +15,7 @@
 // Copyright 2020 Phil Schatzmann
 // Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
 
-#include "a2dp_component/SoundData.h"
+#include "SoundData.h"
 #include "esp_log.h"
 
 /**

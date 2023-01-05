@@ -1,6 +1,16 @@
 #pragma once
-#include "driver/i2s_common.h"
-#include "a2dp_component/BluetoothA2DPSink.h"
+#include "freertos/xtensa_api.h"
+#include "freertos/FreeRTOSConfig.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/semphr.h"
+#include "freertos/task.h"
+#include "driver/i2s_types_legacy.h"
+//#include "driver/i2s_std.h"
+#include "driver/gpio.h"
+#include "freertos/ringbuf.h"
+#include "driver/i2s.h"
+#include "../components/a2dp_component/BluetoothA2DPSink.h"
 
 /**
  * @brief Custom 32 bit stereo output. 
@@ -19,7 +29,7 @@ class BluetoothA2DPSink32 : public BluetoothA2DPSink {
             static constexpr int blk_size = 128;
             static uint32_t data32[blk_size/2];
             uint32_t rest_len = len;
-            int32_t volumeFactor = 0x1000;
+            int32_t volumeFactor = 0x2000; //0x1000;
             
             // adjust the volume
             volume_control()->update_audio_data((Frame*)data, len/4);
@@ -37,8 +47,8 @@ class BluetoothA2DPSink32 : public BluetoothA2DPSink {
                 }
                 
                 size_t i2s_bytes_written;
-                //if (i2s_channel_write(i2s_channels/*i2s_port*/,(void*) data32, blk_len*2, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
-                if (i2s_channel_write(tx_chan/*i2s_port*/,(void*) data32, blk_len*2, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
+                 if (i2s_write(i2s_port,(void*) data32, blk_len*2, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
+                //if (i2s_channel_write(tx_chan/*i2s_port*/,(void*) data32, blk_len*2, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
                     ESP_LOGE(BT_AV_TAG, "i2s_write has failed");
                 }
 

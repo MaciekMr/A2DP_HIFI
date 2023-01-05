@@ -13,7 +13,7 @@
 // Copyright 2020 Phil Schatzmann
 // Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
 
-#include "a2dp_component/BluetoothA2DPSource.h"
+#include "BluetoothA2DPSource.h"
 
 #define BT_APP_SIG_WORK_DISPATCH            (0x01)
 #define BT_APP_SIG_WORK_DISPATCH            (0x01)
@@ -278,7 +278,7 @@ bool BluetoothA2DPSource::bt_app_send_msg(app_msg_t *msg)
         return false;
     }
 
-    if (xQueueSend(s_bt_app_task_queue, msg, 10 / portTICK_RATE_MS) != pdTRUE) {
+    if (xQueueSend(s_bt_app_task_queue, msg, 10 / portTICK_PERIOD_MS) != pdTRUE) {
         ESP_LOGE(BT_APP_TAG, "%s xQueue send failed", __func__);
         return false;
     }
@@ -297,7 +297,7 @@ void BluetoothA2DPSource::bt_app_task_handler(void *arg)
     app_msg_t msg;
     for (;;) {
         if (s_bt_app_task_queue){
-            if (pdTRUE == xQueueReceive(s_bt_app_task_queue, &msg, (portTickType)portMAX_DELAY)) {
+            if (pdTRUE == xQueueReceive(s_bt_app_task_queue, &msg, (TickType_t)portMAX_DELAY)) {
                 ESP_LOGD(BT_APP_TAG, "%s, sig 0x%x, 0x%x", __func__, msg.sig, msg.event);
                 switch (msg.sig) {
                     case BT_APP_SIG_WORK_DISPATCH:
@@ -388,11 +388,11 @@ void BluetoothA2DPSource::filter_inquiry_scan_result(esp_bt_gap_cb_param_t *para
         switch (p->type) {
         case ESP_BT_GAP_DEV_PROP_COD:
             cod = *(uint32_t *)(p->val);
-            ESP_LOGI(BT_AV_TAG, "--Class of Device: 0x%x", cod);
+            ESP_LOGI(BT_AV_TAG, "--Class of Device: 0x%x", (unsigned int)cod);
             break;
         case ESP_BT_GAP_DEV_PROP_RSSI:
             rssi = *(int8_t *)(p->val);
-            ESP_LOGI(BT_AV_TAG, "--RSSI: %d", rssi);
+            ESP_LOGI(BT_AV_TAG, "--RSSI: %d", (int)rssi);
             break;
         case ESP_BT_GAP_DEV_PROP_EIR:
             eir = (uint8_t *)(p->val);
@@ -505,12 +505,12 @@ void BluetoothA2DPSource::bt_app_gap_callback(esp_bt_gap_cb_event_t event, esp_b
 
         case ESP_BT_GAP_CFM_REQ_EVT:
             if (!ssp_enabled) break;
-            ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", param->cfm_req.num_val);
+            ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", (int) param->cfm_req.num_val);
             esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
             break;
         case ESP_BT_GAP_KEY_NOTIF_EVT:
             if (!ssp_enabled) break;
-            ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_KEY_NOTIF_EVT passkey:%d", param->key_notif.passkey);
+            ESP_LOGI(BT_AV_TAG, "ESP_BT_GAP_KEY_NOTIF_EVT passkey:%d", (int)param->key_notif.passkey);
             break;
         case ESP_BT_GAP_KEY_REQ_EVT:
             if (!ssp_enabled) break;
@@ -571,7 +571,7 @@ void BluetoothA2DPSource::bt_av_hdl_stack_evt(uint16_t event, void *p_param)
 
             // create and start heart beat timer 
             int tmr_id = 0;
-            s_tmr = xTimerCreate("connTmr", (10000 / portTICK_RATE_MS), pdTRUE, (void *)tmr_id, ccall_a2d_app_heart_beat);
+            s_tmr = xTimerCreate("connTmr", (10000 / portTICK_PERIOD_MS), pdTRUE, (void *)tmr_id, ccall_a2d_app_heart_beat);
             xTimerStart(s_tmr, portMAX_DELAY);
             
             break;
@@ -957,7 +957,7 @@ int32_t BluetoothA2DPSource::get_data_default(uint8_t *data, int32_t len) {
     if (has_sound_data()) {
         result_len = sound_data->get2ChannelData(sound_data_current_pos, len, data);
         if (result_len!=512) {
-            ESP_LOGD(BT_APP_TAG, "=> len: %d / result_len: %d", len, result_len);
+            ESP_LOGD(BT_APP_TAG, "=> len: %d / result_len: %d", (int) len, (int)result_len);
         }
         // calculate next position
         sound_data_current_pos+=result_len;

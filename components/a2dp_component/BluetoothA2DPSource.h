@@ -19,7 +19,7 @@
 #pragma once
 
 #include <vector> 
-#include "a2dp_component/BluetoothA2DPCommon.h"
+#include "BluetoothA2DPCommon.h"
 
 typedef void (* bt_app_cb_t) (uint16_t event, void *param);
 typedef  int32_t (* music_data_cb_t) (uint8_t *data, int32_t len);
@@ -180,8 +180,8 @@ class BluetoothA2DPSource : public BluetoothA2DPCommon {
     int s_connecting_heatbeat_count;
     uint32_t s_pkt_cnt;
     TimerHandle_t s_tmr;
-    xQueueHandle s_bt_app_task_queue = nullptr;
-    xTaskHandle s_bt_app_task_handle = nullptr;
+    QueueHandle_t s_bt_app_task_queue = nullptr;
+    TaskHandle_t s_bt_app_task_handle = nullptr;
     // support for raw data
     SoundData *sound_data = nullptr;
     int32_t sound_data_current_pos = 0;

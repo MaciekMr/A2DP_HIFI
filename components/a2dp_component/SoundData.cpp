@@ -12,15 +12,16 @@
 //
 // Copyright 2020 Phil Schatzmann
 
-#include "a2dp_component/SoundData.h"
+#include <algorithm>
+#include "SoundData.h"
 
 #define SOUND_DATA "SOUND_DATA"
 
-  void Frame::Frame(int16_t v = 0){
+  Frame::Frame(int16_t v = 0){
     channel1 = channel2 = v;
   }
   
-  void Frame::Frame(int16_t ch1, int16_t ch2){
+  Frame::Frame(int16_t ch1, int16_t ch2){
     channel1 = ch1;
     channel2 = ch2;
   }

@@ -1,5 +1,7 @@
-
-#include "a2dp_component/BluetoothA2DPSinkQueued.h"
+#include "freertos/xtensa_api.h"
+#include "freertos/FreeRTOSConfig.h"
+#include "freertos/FreeRTOS.h"
+#include "BluetoothA2DPSinkQueued.h"
 
 void BluetoothA2DPSinkQueued::bt_i2s_task_start_up(void)
 {
@@ -39,7 +41,7 @@ void BluetoothA2DPSinkQueued::i2s_task_handler(void *arg)
 
     while (true) {
         /* receive data from ringbuffer and write it to I2S DMA transmit buffer */
-        data = (uint8_t *)xRingbufferReceive(s_ringbuf_i2s, &item_size, (portTickType)portMAX_DELAY);
+        data = (uint8_t *)xRingbufferReceive(s_ringbuf_i2s, &item_size, (TickType_t)portMAX_DELAY);
 
         if (item_size != 0){
             i2s_write_data(data, item_size);
@@ -59,7 +61,7 @@ size_t BluetoothA2DPSinkQueued::write_audio(const uint8_t *data, size_t size)
         result = 0;
     }
 
-    BaseType_t rc = xRingbufferSend(s_ringbuf_i2s, (void *)data, size, (portTickType)portMAX_DELAY);
+    BaseType_t rc = xRingbufferSend(s_ringbuf_i2s, (void *)data, size, (TickType_t)portMAX_DELAY);
     if (rc==pdFALSE){
         ESP_LOGE(BT_AV_TAG, "xRingbufferSend: %d", size);    
         result = 0;

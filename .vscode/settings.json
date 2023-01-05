@@ -5,7 +5,16 @@
     "bluetootha2dpsink.h": "c",
     "bluetootha2dpcommon.h": "c",
     "algorithm": "cpp",
-    "i2s.h": "c"
+    "i2s.h": "c",
+    "adc_oneshot.h": "c",
+    "i2s_types_legacy.h": "c",
+    "adc_i2s_legacy.h": "c",
+    "i2s_hal.h": "c"
   },
-  "idf.adapterTargetName": "esp32"
+  "idf.adapterTargetName": "esp32",
+  "idf.portWin": "COM4",
+  "idf.openOcdConfigs": [
+    "board/esp32-wrover-kit-3.3v.cfg"
+  ],
+  "idf.flashType": "UART"
 }
