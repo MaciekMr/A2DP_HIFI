@@ -25,46 +25,10 @@ BluetoothA2DPSink* actual_bluetooth_a2dp_sink;
  */
 BluetoothA2DPSink::BluetoothA2DPSink() {
   actual_bluetooth_a2dp_sink = this;
-  if (is_i2s_output) {
+  if (i2s_common.use_i2s_output()) {
         // default i2s port is 0
-        i2s_port = (i2s_port_t) 0;
-        //i2s_new_channel(&i2s_channel_config, &tx_handle, NULL);
-        // setup default i2s config
-        i2s_config = {
-            .mode = (i2s_mode_t) (I2S_MODE_MASTER | I2S_MODE_TX),
-            .sample_rate = 44100,
-            .bits_per_sample = (i2s_bits_per_sample_t)16,
-            .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-            .communication_format = (i2s_comm_format_t) I2S_COMM_FORMAT_STAND_I2S,
-            .intr_alloc_flags = 0, // default interrupt priority
-            .dma_buf_count = 8,
-            .dma_buf_len = 64,
-            .use_apll = false,
-            .tx_desc_auto_clear = true, // avoiding noise in case of data unavailability
-            /*.gpio_cfg = {
-                .mclk = I2S_GPIO_UNUSED,
-                .bclk = I2S_CLK_PIN,
-                .ws = I2S_DATA_PIN,
-                .dout = I2S_LRCK_PIN,
-                .din = I2S_GPIO_UNUSED,
-                .invert_flags = {
-                    .mclk_inv = false,
-                    .bclk_inv = false,
-                    .ws_inv = false,
-                }
-            }*/
-        };
+        i2s_common.init_i2s();
 
-        /* Initialize the channel */
-        //i2s_channel_init_std_mode(tx_chan, &i2s_config);
-        //i2s_channel_enable(tx_chan);
-        // setup default pins
-        pin_config = {
-            .bck_io_num = I2S_CLK_PIN,  //bck
-            .ws_io_num = I2S_LRCK_PIN,  //lrck
-            .data_out_num = I2S_DATA_PIN, //dout
-            .data_in_num = I2S_PIN_NO_CHANGE
-        };
     }
 #ifdef ESP_IDF_4
     s_avrc_peer_rn_cap.bits = 0;
@@ -89,9 +53,10 @@ void BluetoothA2DPSink::end(bool release_memory) {
     app_task_shut_down();
 
     // stop I2S
-    if (is_i2s_output){
+    if (i2s_common.use_i2s_output()){
         ESP_LOGI(BT_AV_TAG,"uninstall i2s");
-        if (i2s_driver_uninstall(i2s_port) != ESP_OK){
+        //if (i2s_driver_uninstall(i2s_port) != ESP_OK){
+        if (i2s_common.uninstall_driver() != ESP_OK){
             ESP_LOGE(BT_AV_TAG,"Failed to uninstall i2s");
         }
         else {
@@ -104,20 +69,24 @@ void BluetoothA2DPSink::end(bool release_memory) {
 
 void BluetoothA2DPSink::set_pin_config(i2s_pin_config_t pin_config){
 //void BluetoothA2DPSink::set_pin_config(i2s_std_gpio_config_t pin_config){
-  this->pin_config = pin_config;
+  //this->pin_config = pin_config;
+  i2s_common.set_pin_config(pin_config);
 }
 
 void BluetoothA2DPSink::set_i2s_port(i2s_port_t i2s_num) {
-  i2s_port = i2s_num;
+  //i2s_port = i2s_num;
+  i2s_common.set_i2s_port(i2s_num);
 }
 
 void BluetoothA2DPSink::set_i2s_config(i2s_config_t i2s_config){
-  this->i2s_config = i2s_config;
+  i2s_common.set_i2s_config(i2s_config);
+  //this->i2s_config = i2s_config;
 }
 
 void BluetoothA2DPSink::set_stream_reader(void (*callBack)(const uint8_t*, uint32_t), bool is_i2s){
-  this->stream_reader = callBack;
-  this->is_i2s_output = is_i2s;
+    this->stream_reader = callBack;
+    //this->is_i2s_output = is_i2s;
+    i2s_common.set_i2s_output(is_i2s);
 }
 
 void BluetoothA2DPSink::set_on_data_received(void (*callBack)()){
@@ -179,7 +148,7 @@ void BluetoothA2DPSink::start(const char* name)
     }
 
     // setup i2s
-    init_i2s();
+    i2s_common.init_i2s();
 
     // setup bluetooth
     init_bluetooth();
@@ -218,54 +187,13 @@ void BluetoothA2DPSink::start(const char* name)
 
 void BluetoothA2DPSink::init_i2s() { 
     ESP_LOGI(BT_AV_TAG,"init_i2s");
-    if (is_i2s_output){
-        ESP_LOGI(BT_AV_TAG,"init_i2s is_i2s_output");
-        // setup i2s
-        if (i2s_driver_install(i2s_port, &i2s_config, 0, NULL) != ESP_OK) {
-            ESP_LOGE(BT_AV_TAG,"i2s_driver_install failed");
-        } else {
-            player_init = false; //reset player
-        }
-
-        // pins are only relevant when music is not sent to internal DAC
-        if (i2s_config.mode & I2S_MODE_DAC_BUILT_IN) {
-            if (i2s_set_pin(i2s_port, nullptr)!= ESP_OK) {
-                ESP_LOGE(BT_AV_TAG,"i2s_set_pin failed");
-            }      
-            if (i2s_set_dac_mode(I2S_DAC_CHANNEL_BOTH_EN)!= ESP_OK){
-                ESP_LOGE(BT_AV_TAG,"i2s_set_dac_mode failed");
-            }
-            ESP_LOGI(BT_AV_TAG, "Output will go to DAC pins");
-        } else {
-            if (i2s_set_pin(i2s_port, &pin_config) != ESP_OK) {
-                ESP_LOGE(BT_AV_TAG,"i2s_set_pin failed");
-            }
-        }
-    }
+    if(i2s_common.init_driver() == ESP_OK)
+        player_init = false; //reset player
 }
 
 esp_err_t BluetoothA2DPSink::i2s_mclk_pin_select(const uint8_t pin) {
-    if(pin != 0 && pin != 1 && pin != 3) {
-        ESP_LOGE(BT_APP_TAG, "Only support GPIO0/GPIO1/GPIO3, gpio_num:%d", pin);
-        return ESP_ERR_INVALID_ARG;
-    }
-    switch(pin){
-        case 0:
-            PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0_CLK_OUT1);
-            WRITE_PERI_REG(PIN_CTRL, 0xFFF0);
-            break;
-        case 1:
-            PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0TXD_U, FUNC_U0TXD_CLK_OUT3);
-            WRITE_PERI_REG(PIN_CTRL, 0xF0F0);
-            break;
-        case 3:
-            PIN_FUNC_SELECT(PERIPHS_IO_MUX_U0RXD_U, FUNC_U0RXD_CLK_OUT2);
-            WRITE_PERI_REG(PIN_CTRL, 0xFF00);
-            break;
-        default:
-            break;
-    }
-    return ESP_OK;
+    
+    return(i2s_common.i2s_mclk_pin_select(pin));
 }
 
 
@@ -636,22 +564,26 @@ void BluetoothA2DPSink::handle_audio_cfg(uint16_t event, void *p_param) {
     ESP_LOGI(BT_AV_TAG, "a2dp audio_cfg_cb , codec type %d", a2d->audio_cfg.mcc.type);
 
     // determine sample rate
-    i2s_config.sample_rate = 16000;
+    //i2s_config.sample_rate = 16000;
+    i2s_common.set_sample_rate(16000);
     char oct0 = a2d->audio_cfg.mcc.cie.sbc[0];
     if (oct0 & (0x01 << 6)) {
-        i2s_config.sample_rate = 32000;
+        //i2s_config.sample_rate = 32000;
+        i2s_common.set_sample_rate(32000);
     } else if (oct0 & (0x01 << 5)) {
-        i2s_config.sample_rate = 44100;
+        //i2s_config.sample_rate = 44100;
+        i2s_common.set_sample_rate(44100);
     } else if (oct0 & (0x01 << 4)) {
-        i2s_config.sample_rate = 48000;
+        //i2s_config.sample_rate = 48000;
+        i2s_common.set_sample_rate(48000);
     }
-    ESP_LOGI(BT_AV_TAG, "a2dp audio_cfg_cb , sample_rate %d", (int)i2s_config.sample_rate );
+    ESP_LOGI(BT_AV_TAG, "a2dp audio_cfg_cb , sample_rate %d", (int)i2s_common.sample_rate() );
     if (sample_rate_callback!=nullptr){
-        sample_rate_callback(i2s_config.sample_rate);
+        sample_rate_callback(i2s_common.sample_rate());
     }
 
     // for now only SBC stream is supported
-    if (player_init == false && is_i2s_output && a2d->audio_cfg.mcc.type == ESP_A2D_MCT_SBC) {
+    if (player_init == false && i2s_common.use_i2s_output() && a2d->audio_cfg.mcc.type == ESP_A2D_MCT_SBC) {
         ESP_LOGI(BT_AV_TAG, "configure audio player %x-%x-%x-%x\n",
                 a2d->audio_cfg.mcc.cie.sbc[0],
                 a2d->audio_cfg.mcc.cie.sbc[1],
@@ -659,6 +591,10 @@ void BluetoothA2DPSink::handle_audio_cfg(uint16_t event, void *p_param) {
                 a2d->audio_cfg.mcc.cie.sbc[3]);
         
         // setup sample rate and channels
+        if(i2s_common.set_sample_channels() != ESP_OK)
+        {
+            ESP_LOGE(BT_AV_TAG, "i2s_set_clk failed with samplerate=%d", (int)i2s_config.sample_rate);
+        }
         if (i2s_set_clk(i2s_port, i2s_config.sample_rate, i2s_config.bits_per_sample, i2s_channels)!=ESP_OK){
             ESP_LOGE(BT_AV_TAG, "i2s_set_clk failed with samplerate=%d", (int)i2s_config.sample_rate);
         } else {
@@ -831,7 +767,7 @@ void BluetoothA2DPSink::handle_connection_state(uint16_t event, void *p_param){
 }
 
 uint16_t BluetoothA2DPSink::sample_rate(){
-    return i2s_config.sample_rate;
+    return i2s_common.sample_rate(); // i2s_config.sample_rate;
 }
 
 
@@ -1128,10 +1064,10 @@ void BluetoothA2DPSink::rewind(){
 void BluetoothA2DPSink::set_volume(uint8_t volume)
 {
   ESP_LOGI(BT_AV_TAG, "set_volume %d", volume);
-  if (volume > 0xAf) {  //0x7f
-      volume = 0xAf;
+  if (volume > APP_VOLUME_FACTOR_SET_MAX) {  //0x7f
+      volume = APP_VOLUME_FACTOR_SET_MAX;    //0x7f
   } 
-  s_volume = volume & 0xAf;
+  s_volume = volume & APP_VOLUME_FACTOR_SET_MAX;  //0x7f
   volume_control()->set_volume(s_volume);
   volume_control()->set_enabled(true);
 
@@ -1245,7 +1181,7 @@ void ccall_av_hdl_a2d_evt(uint16_t event, void *param){
 
 size_t BluetoothA2DPSink::i2s_write_data(const uint8_t* data, size_t item_size){
     size_t i2s_bytes_written = 0;
-    if (this->i2s_config.mode & I2S_MODE_DAC_BUILT_IN) {
+    if (this->i2s_common.get_config().mode & I2S_MODE_DAC_BUILT_IN) {
         // special case for internal DAC output, the incomming PCM buffer needs 
         // to be converted from signed 16bit to unsigned
         int16_t* data16 = (int16_t*) data;
@@ -1260,19 +1196,20 @@ size_t BluetoothA2DPSink::i2s_write_data(const uint8_t* data, size_t item_size){
         }
     } 
 
-    if (i2s_config.bits_per_sample == I2S_BITS_PER_SAMPLE_16BIT){
+    if (this->i2s_common.get_config().bits_per_sample == I2S_BITS_PER_SAMPLE_16BIT){
         // standard logic with 16 bits
-        if (i2s_write(i2s_port,(void*) data, item_size, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
+        //if (i2s_write(i2s_port,(void*) data, item_size, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
+        if (i2s_common.i2s_write_data(data, item_size)!=ESP_OK){
             ESP_LOGE(BT_AV_TAG, "i2s_write has failed");    
         }
     } else {
-        if (i2s_config.bits_per_sample > 16){
+        if (this->i2s_common.get_config().bits_per_sample > 16){
             // expand e.g to 32 bit for dacs which do not support 16 bits
-            if (i2s_write_expand(i2s_port,(void*) data, item_size, I2S_BITS_PER_SAMPLE_16BIT, i2s_config.bits_per_sample, &i2s_bytes_written, portMAX_DELAY) != ESP_OK){
+            if (i2s_write_expand(i2s_port,(void*) data, item_size, I2S_BITS_PER_SAMPLE_16BIT, this->i2s_common.get_config().bits_per_sample, &i2s_bytes_written, portMAX_DELAY) != ESP_OK){
                 ESP_LOGE(BT_AV_TAG, "i2s_write has failed");    
             }
         } else {
-            ESP_LOGE(BT_AV_TAG, "invalid bits_per_sample: %d", i2s_config.bits_per_sample);    
+            ESP_LOGE(BT_AV_TAG, "invalid bits_per_sample: %d", this->i2s_common.get_config().bits_per_sample);    
         }
     }
     return item_size;
@@ -1307,10 +1244,10 @@ void BluetoothA2DPSink::app_rc_tg_callback(esp_avrc_tg_cb_event_t event, esp_avr
 
 void BluetoothA2DPSink::volume_set_by_controller(uint8_t volume)
 {
-    ESP_LOGI(BT_AV_TAG, "Volume is set by remote controller to %d", (int)volume * 100 / 0x7f);
+    ESP_LOGI(BT_AV_TAG, "Volume is set by remote controller to %d", (int)volume * 100 / APP_VOLUME_FACTOR_MAX);
 
     _lock_acquire(&s_volume_lock);
-    s_volume = volume;
+    s_volume = volume*APP_VOLUME_MULTIPLY;
     _lock_release(&s_volume_lock);
     
     volume_control()->set_volume(s_volume);
@@ -1323,10 +1260,10 @@ void BluetoothA2DPSink::volume_set_by_controller(uint8_t volume)
 
 void BluetoothA2DPSink::volume_set_by_local_host(uint8_t volume)
 {
-    ESP_LOGI(BT_AV_TAG, "Volume is set locally to: %d", (int)volume * 100 / 0x7f);
+    ESP_LOGI(BT_AV_TAG, "Volume is set locally to: %d", (int)volume * 100 / APP_VOLUME_FACTOR_MAX);
 
     _lock_acquire(&s_volume_lock);
-    s_volume = volume;
+    s_volume = volume*APP_VOLUME_MULTIPLY;
     _lock_release(&s_volume_lock);
 
     if (s_volume_notify) {
@@ -1367,7 +1304,7 @@ void BluetoothA2DPSink::av_hdl_avrc_tg_evt(uint16_t event, void *p_param)
     }
 
     case ESP_AVRC_TG_SET_ABSOLUTE_VOLUME_CMD_EVT: {
-        ESP_LOGI(BT_AV_TAG, "AVRC set absolute volume: %d%%", (int)rc->set_abs_vol.volume * 100/ 0x7f);    
+        ESP_LOGI(BT_AV_TAG, "AVRC set absolute volume: %d%%", (int)rc->set_abs_vol.volume * 100/ APP_VOLUME_FACTOR_MAX);    
         volume_set_by_controller(rc->set_abs_vol.volume);
         break;
     }
@@ -1378,7 +1315,7 @@ void BluetoothA2DPSink::av_hdl_avrc_tg_evt(uint16_t event, void *p_param)
             ESP_LOGI(BT_AV_TAG, "AVRC Volume Changes Supported");
             s_volume_notify = true;
             esp_avrc_rn_param_t rn_param;
-            rn_param.volume = s_volume;
+            rn_param.volume = s_volume*APP_VOLUME_MULTIPLY;
             esp_avrc_tg_send_rn_rsp(ESP_AVRC_RN_VOLUME_CHANGE, ESP_AVRC_RN_RSP_INTERIM, &rn_param);            
         } else {
             ESP_LOGW(BT_AV_TAG, "AVRC Volume Changes NOT Supported");
