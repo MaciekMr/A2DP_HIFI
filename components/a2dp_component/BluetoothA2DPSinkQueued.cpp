@@ -44,7 +44,8 @@ void BluetoothA2DPSinkQueued::i2s_task_handler(void *arg)
         data = (uint8_t *)xRingbufferReceive(s_ringbuf_i2s, &item_size, (TickType_t)portMAX_DELAY);
 
         if (item_size != 0){
-            i2s_write_data(data, item_size);
+            //i2s_write_data(data, item_size);
+            i2s_common.i2s_write_data(data, item_size);
             ESP_LOGD(BT_AV_TAG, "i2s_task_handler->%d",item_size);    
             vRingbufferReturnItem(s_ringbuf_i2s, (void *)data);
         } else {

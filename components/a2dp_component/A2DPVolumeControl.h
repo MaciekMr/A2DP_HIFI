@@ -18,6 +18,11 @@
 #include "SoundData.h"
 #include "esp_log.h"
 
+#define APP_VOLUME_FACTOR_MAX       (0x7F) //0x7F
+#define APP_VOLUME_FACTOR_SET_MAX   (0xFF) //0x7F
+#define APP_VOLUME_FACTOR           (0xFFFF) //0x1000
+#define APP_VOLUME_MULTIPLY   2  //default 1
+
 /**
  * @brief Abstract class for handling of the volume of the audio data
  * @author Phil Schatzmann
@@ -29,12 +34,12 @@ class A2DPVolumeControl {
     protected:
         bool is_volume_used = false;
         bool mono_downmix = false;
-        int32_t volumeFactor;
-        int32_t volumeFactorMax;
+        uint32_t volumeFactor;
+        uint32_t volumeFactorMax;
 
     public:
         A2DPVolumeControl() {
-            volumeFactorMax = 0x1000;
+            volumeFactorMax = APP_VOLUME_FACTOR;  //0x1000
         }
 
         virtual void update_audio_data(Frame* data, uint16_t frameCount) {
@@ -87,14 +92,14 @@ class A2DPVolumeControl {
 class A2DPDefaultVolumeControl : public A2DPVolumeControl {
 
         virtual void set_volume(uint8_t volume) {
-            constexpr double base = 1.4;
+            constexpr double base = 1.4;  //1.4
             constexpr double bits = 12;
             constexpr double zero_ofs = pow(base, -bits);
             constexpr double scale = pow(2.0, bits);
             double volumeFactorFloat = (pow(base, volume * bits / 127.0 - bits) - zero_ofs) * scale / (1.0 - zero_ofs);
             volumeFactor = volumeFactorFloat;
-            if (volumeFactor > 0x1000) {
-                volumeFactor = 0x1000;
+            if (volumeFactor > APP_VOLUME_FACTOR) { //0x1000
+                volumeFactor = APP_VOLUME_FACTOR;   //0x1000
             }
         }
 };
@@ -106,10 +111,10 @@ class A2DPDefaultVolumeControl : public A2DPVolumeControl {
 class A2DPSimpleExponentialVolumeControl : public A2DPVolumeControl {
         virtual void set_volume(uint8_t volume) {
             double volumeFactorFloat = volume;
-            volumeFactorFloat = pow(2.0, volumeFactorFloat * 12.0 / 127.0);
+            volumeFactorFloat = pow(2.0, volumeFactorFloat * 12.0 / 255.0);
             int32_t volumeFactor = volumeFactorFloat - 1.0;
-            if (volumeFactor > 0xfff) {
-                volumeFactor = 0xfff;
+            if (volumeFactor > APP_VOLUME_FACTOR) { //0x0fff
+                volumeFactor = APP_VOLUME_FACTOR;   //0x0fff
             }
         }
 };
@@ -122,7 +127,7 @@ class A2DPSimpleExponentialVolumeControl : public A2DPVolumeControl {
 class A2DPLinearVolumeControl : public A2DPVolumeControl {
 
         A2DPLinearVolumeControl() {
-            volumeFactorMax = 128;
+            volumeFactorMax = APP_VOLUME_FACTOR_MAX; //128
         }
 
         virtual void set_volume(uint8_t volume) {
