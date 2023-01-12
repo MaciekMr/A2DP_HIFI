@@ -32,7 +32,7 @@ protected:
     i2s_port_t i2s_port = I2S_NUM_0; 
     i2s_chan_handle_t tx_chan;
 
-     esp_spp_cfg_t spp_config;
+    esp_spp_cfg_t spp_config;
 public:
     I2SCommon();
     ~I2SCommon();

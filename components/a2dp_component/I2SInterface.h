@@ -24,7 +24,7 @@
 
 #define EXAMPLE_BUFF_SIZE               2048
 
-
+#define I2S_TAG "I2S_IF"
 /*
 I2S has to be used in standard mode to send data to external 
 foraudio we can use only audio clock: i2s_clock_src_t::I2S_CLK_SRC_APLL
@@ -37,14 +37,24 @@ struct{
     int dout; //data out to external i2s device 
 }pin_configuration;
 
+struct i2s_handler_t{
+    i2s_chan_handle_t tx_handler;
+    i2s_chan_config_t channel_configuration;
+    i2s_std_config_t  i2s_configuration;
+};
+
+struct sound_quality_t{
+    uint32_t    sample_rate; //16000, 32000, 44100, 48000
+    i2s_data_bit_width_t data_width;
+    i2s_slot_mode_t  mode;
+};
+
 class I2SInterface
     :public I2SCommon
 {
 protected:
-    i2s_chan_handle_t  tx_chan;        // I2S tx channel handler
-    i2s_std_config_t tx_std_cfg;
-    i2s_chan_config_t tx_chan_cfg;
-    
+    i2s_handler_t    i2s_handler;
+    sound_quality_t  sound_quality;
     I2SInterface();
     ~I2SInterface();
 public:
@@ -53,5 +63,10 @@ public:
     void setvolume();
     void reconfigI2S();
 
+    //Override the virtual methods
+    virtual void init_i2s();
+
+    //load i2s driver and start it
+    virtual esp_err_t init_i2s_driver();
 
 };
