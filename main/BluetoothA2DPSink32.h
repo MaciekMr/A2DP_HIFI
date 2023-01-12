@@ -45,15 +45,12 @@ class BluetoothA2DPSink32 : public BluetoothA2DPSink {
                     data32[i*2+1] = pcmRight;
                     frame++;
                 }
-                /*TODO: update with new I2S*/
-                size_t i2s_bytes_written = -1;
-                //if (i2s_write(i2s_port,(void*) data32, blk_len*2, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
-                //if (i2s_channel_write(tx_chan/*i2s_port*/,(void*) data32, blk_len*2, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
-                /*
+                
+                size_t i2s_bytes_written = -1;           
                 if(i2s_common.i2s_write_data((void*) data32, blk_len*2)!=ESP_OK){
                     ESP_LOGE(BT_AV_TAG, "i2s_write has failed");
                 }
-                */
+                
                 if (i2s_bytes_written < blk_len*2 ){
                     ESP_LOGE(BT_AV_TAG, "Timeout: not all bytes were written to I2S");
                 }

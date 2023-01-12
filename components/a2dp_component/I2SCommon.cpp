@@ -14,17 +14,17 @@ I2SCommon::~I2SCommon()
 
 void I2SCommon::set_pin_config(i2s_pin_config_t pin_config)
 {
-
+    this->pin_config = pin_config;
 }
 
 void I2SCommon::set_i2s_port(i2s_port_t i2s_num)
 {
-
+    this->i2s_port = i2s_num;
 }
 
 void I2SCommon::set_i2s_config(i2s_config_t i2s_config)
 {
-
+    this->i2s_config = i2s_config;
 }
 
 void I2SCommon::init_i2s()
@@ -70,11 +70,11 @@ void I2SCommon::init_i2s()
 }
 
 
-esp_err_t I2SCommon::init_driver()
+esp_err_t I2SCommon::init_i2s_driver()
 {
     esp_err_t error = ESP_OK;
     ESP_LOGI(BT_AV_TAG,"init_i2s");
-    if (is_i2s_output){
+    if (i2s_output == EXTERNAL){
         ESP_LOGI(BT_AV_TAG,"init_i2s is_i2s_output");
         // setup i2s
         if ((error = i2s_driver_install(i2s_port, &i2s_config, 0, NULL)) != ESP_OK) {
@@ -126,7 +126,7 @@ esp_err_t I2SCommon::i2s_mclk_pin_select(const uint8_t pin)
     return ESP_OK;
 }
 
-uint16_t I2SCommon::sample_rate()
+uint16_t I2SCommon::get_sample_rate()
 {
     return(i2s_config.sample_rate);
 }
@@ -141,20 +141,36 @@ void I2SCommon::set_bits_per_sample(i2s_bits_per_sample_t bps)
     i2s_config.bits_per_sample = bps;
 }
 
-size_t I2SCommon::i2s_write_data(const uint8_t* data, size_t item_size)
+i2s_bits_per_sample_t I2SCommon::get_bits_per_sample()
 {
+    return(i2s_config.bits_per_sample);
+}
+
+size_t I2SCommon::i2s_write_data(const uint8_t* data, size_t item_size, bool extended)
+{
+    size_t i2s_bytes_written = 0;
+    //uint16_t bytes_written = 0;
+    if(extended)//write extended data used for 32bit
+    {
+        i2s_write_expand(i2s_port,(void*) data, item_size, I2S_BITS_PER_SAMPLE_16BIT, get_bits_per_sample(), &i2s_bytes_written, portMAX_DELAY);
+    }else{
+        //((bits+8)/16)*SAMPLE_PER_CYCLE*4
+        i2s_write(i2s_port,(void*) data, item_size, &i2s_bytes_written, portMAX_DELAY);
+    }
 
     return 0;
 }
 
+//Set the i2s output; true - external DAC, false - internal DAC
 void I2SCommon::set_i2s_output(bool out)
 {
-    is_i2s_output = out;
+    //is_i2s_output = out;
+    i2s_output = out?EXTERNAL:INTERNAL;
 }
 
-bool I2SCommon::use_i2s_output()
+bool I2SCommon::get_i2s_output()
 {
-    return(is_i2s_output);
+    return(i2s_output);
 }
 
 esp_err_t I2SCommon::uninstall_driver()
@@ -164,11 +180,45 @@ esp_err_t I2SCommon::uninstall_driver()
 
 esp_err_t I2SCommon::set_sample_channels()
 {
+    esp_err_t error = ESP_OK;
     // setup sample rate and channels
-    if (i2s_set_clk(i2s_port, i2s_config.sample_rate, i2s_config.bits_per_sample, i2s_channels)!=ESP_OK){
+    if ((error = i2s_set_clk(i2s_port, i2s_config.sample_rate, i2s_config.bits_per_sample, i2s_channels))!=ESP_OK){
         ESP_LOGE(BT_AV_TAG, "i2s_set_clk failed with samplerate=%d", (int)i2s_config.sample_rate);
     } else {
         ESP_LOGI(BT_AV_TAG, "audio player configured, samplerate=%d", (int) i2s_config.sample_rate);
-        player_init = true; //init finished
     }
+    return (error);
+}
+
+esp_err_t I2SCommon::start()
+{
+    return(i2s_start(i2s_port));
+}
+
+esp_err_t I2SCommon::stop()
+{
+    return(i2s_stop(i2s_port));
+}
+
+esp_err_t I2SCommon::clear_dma_buffer()
+{
+    return(i2s_zero_dma_buffer(i2s_port));
+}
+
+esp_err_t I2SCommon::init_spp()
+{
+    esp_err_t error = ESP_OK;
+    spp_config = {
+        .mode = ESP_SPP_MODE_CB,
+        .enable_l2cap_ertm = true,
+        .tx_buffer_size = ESP_SPP_MIN_TX_BUFFER_SIZE
+    };
+    if((error = esp_spp_enhanced_init(&spp_config))!= ESP_OK)
+    {
+        ESP_LOGW(BT_SPP,"SPP failed to initialise");
+    }else{
+        ESP_LOGI(BT_SPP,"SPP initialised sucessfully");
+    }
+
+    return(error);
 }

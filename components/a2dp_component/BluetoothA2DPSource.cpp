@@ -16,7 +16,6 @@
 #include "BluetoothA2DPSource.h"
 
 #define BT_APP_SIG_WORK_DISPATCH            (0x01)
-#define BT_APP_SIG_WORK_DISPATCH            (0x01)
 
 #define APP_RC_CT_TL_RN_VOLUME_CHANGE       (1)
 #define BT_APP_HEART_BEAT_EVT               (0xff00)
@@ -44,7 +43,6 @@ enum {
     APP_AV_MEDIA_STATE_STARTED,
     APP_AV_MEDIA_STATE_STOPPING,
 };
-
 
 BluetoothA2DPSource *self_BluetoothA2DPSource;
 
@@ -571,7 +569,7 @@ void BluetoothA2DPSource::bt_av_hdl_stack_evt(uint16_t event, void *p_param)
 
             // create and start heart beat timer 
             int tmr_id = 0;
-            s_tmr = xTimerCreate("connTmr", (10000 / portTICK_PERIOD_MS), pdTRUE, (void *)tmr_id, ccall_a2d_app_heart_beat);
+            s_tmr = xTimerCreate("connTmr", (10000 / portTICK_PERIOD_MS), pdTRUE, (void *)tmr_id, (TimerCallbackFunction_t)ccall_a2d_app_heart_beat);
             xTimerStart(s_tmr, portMAX_DELAY);
             
             break;
