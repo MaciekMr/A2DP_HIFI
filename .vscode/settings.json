@@ -21,7 +21,7 @@
     "regex": "cpp"
   },
   "idf.adapterTargetName": "esp32",
-  "idf.portWin": "COM3",
+  "idf.portWin": "COM4",
   "idf.openOcdConfigs": [
     "board/esp32-wrover-kit-3.3v.cfg"
   ],

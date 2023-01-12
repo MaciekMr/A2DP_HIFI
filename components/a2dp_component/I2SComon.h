@@ -44,13 +44,13 @@ public:
     virtual esp_err_t init_i2s_driver();
 
     /// writes the data to i2s
-    size_t i2s_write_data(const uint8_t* data, size_t item_size, bool extended = false);
+    virtual size_t i2s_write_data(const uint8_t* data, size_t item_size, bool extended = false);
     
     //i2s_bits_per_sample_t bits_per_sample set in config structure
-    void set_bits_per_sample(i2s_bits_per_sample_t );
+    virtual void set_bits_per_sample(i2s_bits_per_sample_t );
 
     //get bits_per_sample from config structure
-    i2s_bits_per_sample_t get_bits_per_sample();
+    virtual i2s_bits_per_sample_t get_bits_per_sample();
 
     /// Define the pins
     virtual void set_pin_config(i2s_pin_config_t pin_config);
@@ -62,31 +62,31 @@ public:
     virtual void set_i2s_config(i2s_config_t i2s_config);
     
     //Set sample reate
-    void set_sample_rate(uint32_t);
+    virtual void set_sample_rate(uint32_t);
 
     //get sample rate
-    uint16_t get_sample_rate();
+    virtual uint16_t get_sample_rate();
 
-    i2s_config_t get_config(){return i2s_config;}
+    virtual i2s_config_t get_config(){return i2s_config;}
     
     /// Defines the pin for the master clock
     virtual esp_err_t i2s_mclk_pin_select(const uint8_t pin);
 
-    bool get_i2s_output();
+    virtual bool get_i2s_output();
 
-    void set_i2s_output(bool out);
+    virtual void set_i2s_output(bool out);
 
-    esp_err_t uninstall_driver();
+    virtual esp_err_t uninstall_driver();
 
-    esp_err_t set_sample_channels();
+    virtual esp_err_t set_sample_channels();
 
-    esp_err_t clear_dma_buffer();
+    virtual esp_err_t clear_dma_buffer();
 
-    esp_err_t start();
+    virtual esp_err_t start();
 
-    esp_err_t stop();
+    virtual esp_err_t stop();
 
     //init SSP stack with new approach
-    esp_err_t init_spp();
+    virtual esp_err_t init_spp();
 
 };

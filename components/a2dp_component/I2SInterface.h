@@ -6,6 +6,7 @@
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "sdkconfig.h"
+#include "I2SComon.h"
 
 /*TODO: Replace with data from sdkconfig.h*/
 
@@ -37,6 +38,7 @@ struct{
 }pin_configuration;
 
 class I2SInterface
+    :public I2SCommon
 {
 protected:
     i2s_chan_handle_t  tx_chan;        // I2S tx channel handler
