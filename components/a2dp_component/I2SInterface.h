@@ -5,24 +5,15 @@
 #include "driver/i2s_std.h"
 #include "driver/gpio.h"
 #include "esp_check.h"
+#include "esp_spp_api.h"
 #include "sdkconfig.h"
-#include "I2SComon.h"
+#include "II2Sinterface.h"
 
 /*TODO: Replace with data from sdkconfig.h*/
 
-#if CONFIG_IDF_TARGET_ESP32
-    #define EXAMPLE_STD_BCLK_IO1        GPIO_NUM_4      // I2S bit clock io number
-    #define EXAMPLE_STD_WS_IO1          GPIO_NUM_5      // I2S word select io number
-    #define EXAMPLE_STD_DOUT_IO1        GPIO_NUM_18     // I2S data out io number
-    #define EXAMPLE_STD_DIN_IO1         GPIO_NUM_19     // I2S data in io number
-#else
-    #define EXAMPLE_STD_BCLK_IO2    GPIO_NUM_6      // I2S bit clock io number
-    #define EXAMPLE_STD_WS_IO2      GPIO_NUM_7      // I2S word select io number
-    #define EXAMPLE_STD_DOUT_IO2    GPIO_NUM_8      // I2S data out io number
-    #define EXAMPLE_STD_DIN_IO2     GPIO_NUM_9      // I2S data in io number
-#endif
-
 #define EXAMPLE_BUFF_SIZE               2048
+
+
 
 #define I2S_TAG "I2S_IF"
 /*
@@ -30,12 +21,17 @@ I2S has to be used in standard mode to send data to external
 foraudio we can use only audio clock: i2s_clock_src_t::I2S_CLK_SRC_APLL
 */
 
-struct{
+struct pin_configuration{
     int mclk;
     int bclk;
     int ws; //known as LRCK
     int dout; //data out to external i2s device 
-}pin_configuration;
+}pin_configuration_t;
+
+
+struct i2s_config{
+    uint16_t port;
+};
 
 struct i2s_handler_t{
     i2s_chan_handle_t tx_handler;
@@ -50,16 +46,17 @@ struct sound_quality_t{
 };
 
 class I2SInterface
-    :public I2SCommon
+    //:public II2Sinterface
 {
 protected:
     i2s_handler_t    i2s_handler;
     sound_quality_t  sound_quality;
+    esp_spp_cfg_t spp_config;
+
+public:
     I2SInterface();
     ~I2SInterface();
-public:
-    void initI2S();
-    void senddata();
+
     void setvolume();
     void reconfigI2S();
 
@@ -68,5 +65,37 @@ public:
 
     //load i2s driver and start it
     virtual esp_err_t init_i2s_driver();
+
+    virtual size_t i2s_write_data(const uint8_t* data, size_t item_size, bool extended = false);
+
+    virtual void set_sample_rate(uint32_t freq);
+
+    virtual void set_bits_per_sample(i2s_data_bit_width_t bps);
+
+    virtual esp_err_t uninstall_driver();
+
+    virtual esp_err_t set_sample_channels();
+
+    virtual esp_err_t clear_dma_buffer();
+
+    virtual esp_err_t start();
+
+    virtual esp_err_t stop();
+
+    void set_pin_config(pin_configuration pin_config);
+
+    void set_i2s_config(i2s_config i2s_config);
+
+    bool get_i2s_output();
+
+    void set_i2s_output(bool);
+
+    esp_err_t init_spp();
+
+    esp_err_t get_sample_rate();
+
+    esp_err_t set_sample_rate();
+
+    uint8_t get_role();
 
 };

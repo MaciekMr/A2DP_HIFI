@@ -64,18 +64,19 @@ void BluetoothA2DPSink::end(bool release_memory) {
 }
 
 
-void BluetoothA2DPSink::set_pin_config(i2s_pin_config_t pin_config){
+void BluetoothA2DPSink::set_pin_config(pin_configuration pin_config){
     i2s_common.set_pin_config(pin_config);
 }
-
+/*
 void BluetoothA2DPSink::set_i2s_port(i2s_port_t i2s_num) {
   
   i2s_common.set_i2s_port(i2s_num);
 }
 
+
 void BluetoothA2DPSink::set_i2s_config(i2s_config_t i2s_config){
   i2s_common.set_i2s_config(i2s_config);
-}
+}*/
 
 void BluetoothA2DPSink::set_stream_reader(void (*callBack)(const uint8_t*, uint32_t), bool is_i2s){
     this->stream_reader = callBack;
@@ -183,12 +184,12 @@ void BluetoothA2DPSink::init_i2s() {
     if(i2s_common.init_i2s_driver() == ESP_OK)
         player_init = false; //reset player
 }
-
+/*
 esp_err_t BluetoothA2DPSink::i2s_mclk_pin_select(const uint8_t pin) {
     
     return(i2s_common.i2s_mclk_pin_select(pin));
 }
-
+*/
 
 bool BluetoothA2DPSink::is_connected() {
     return connection_state == ESP_A2D_CONNECTION_STATE_CONNECTED;
@@ -1175,7 +1176,7 @@ void ccall_av_hdl_a2d_evt(uint16_t event, void *param){
 
 size_t BluetoothA2DPSink::i2s_write_data(const uint8_t* data, size_t item_size){
     size_t i2s_bytes_written = 0;
-    if (this->i2s_common.get_config().mode & I2S_MODE_DAC_BUILT_IN) {
+    if (this->i2s_common.get_role() & I2S_MODE_DAC_BUILT_IN) {
         // special case for internal DAC output, the incomming PCM buffer needs 
         // to be converted from signed 16bit to unsigned
         int16_t* data16 = (int16_t*) data;

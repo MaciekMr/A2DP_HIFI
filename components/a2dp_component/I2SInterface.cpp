@@ -21,7 +21,7 @@ I2SInterface::~I2SInterface()
     i2s_del_channel(i2s_handler.tx_handler);
 }
 
-void I2SInterface::initI2S()
+void I2SInterface::init_i2s()
 {
     esp_err_t error = ESP_OK;
     /* Setp 1: Determine the I2S channel configuration and allocate two channels one by one
@@ -29,7 +29,12 @@ void I2SInterface::initI2S()
      * it only requires the I2S controller id and I2S role
      * The tx and rx channels here are registered on different I2S controller,
      * Except ESP32 and ESP32-S2, others allow to register two separate tx & rx channels on a same controller */
-    i2s_handler.channel_configuration = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    //i2s_handler.channel_configuration = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    i2s_handler.channel_configuration.id = I2S_NUM_0;  //= I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    i2s_handler.channel_configuration.role = I2S_ROLE_MASTER;
+    i2s_handler.channel_configuration.dma_desc_num = 6;
+    i2s_handler.channel_configuration.dma_frame_num = 240;
+    i2s_handler.channel_configuration.auto_clear = true;
     //Create new channel only for TX, RX -> NULL
     ESP_ERROR_CHECK(error = i2s_new_channel(&i2s_handler.channel_configuration, &i2s_handler.tx_handler, NULL));
     
@@ -62,50 +67,13 @@ void I2SInterface::initI2S()
 
 void I2SInterface::reconfigI2S()
 {
-    i2s_channel_disable(tx_chan);
-    //i2s_channel_reconfig_std_slot(); //one call for each channel (slot -> channel)
-    i2s_channel_enable(tx_chan);
-
-}
-
-
-void I2SInterface::senddata()
-{
-    //---- xTaskCreate(i2s_example_write_task, "i2s_example_write_task", 4096, NULL, 5, NULL);
-    
-    uint8_t *w_buf = (uint8_t *)calloc(1, EXAMPLE_BUFF_SIZE);
-    assert(w_buf); // Check if w_buf allocation success
-
-    /* Assign w_buf */
-    for (int i = 0; i < EXAMPLE_BUFF_SIZE; i += 8) {
-        w_buf[i]     = 0x12;
-        w_buf[i + 1] = 0x34;
-        w_buf[i + 2] = 0x56;
-        w_buf[i + 3] = 0x78;
-        w_buf[i + 4] = 0x9A;
-        w_buf[i + 5] = 0xBC;
-        w_buf[i + 6] = 0xDE;
-        w_buf[i + 7] = 0xF0;
+    esp_err_t error;
+    i2s_channel_disable(i2s_handler.tx_handler);
+    if((error = i2s_channel_reconfig_std_slot(i2s_handler.tx_handler, &i2s_handler.i2s_configuration.slot_cfg)) != ESP_OK) //one call for each channel (slot -> channel)
+    {
+        ESP_LOGE(I2S_TAG, "i2s_channel reconfig failed");
     }
-
-    size_t w_bytes = 0;
-    while (1) {
-        /* Write i2s data */
-        if (i2s_channel_write(tx_chan, w_buf, EXAMPLE_BUFF_SIZE, &w_bytes, 1000) == ESP_OK) {
-            printf("Write Task: i2s write %d bytes\n", w_bytes);
-        } else {
-            printf("Write Task: i2s write failed\n");
-        }
-        vTaskDelay(pdMS_TO_TICKS(200));
-    }
-    free(w_buf);
-    vTaskDelete(NULL);
-}
-
-
-void I2SInterface::init_i2s()
-{
-    initI2S();
+    i2s_channel_enable(i2s_handler.tx_handler);
 }
 
 esp_err_t I2SInterface::init_i2s_driver()
@@ -115,4 +83,103 @@ esp_err_t I2SInterface::init_i2s_driver()
         ESP_LOGE(I2S_TAG, "Enable channel has failed!");
     
     return (error);
+}
+
+size_t I2SInterface::i2s_write_data(const uint8_t* data, size_t item_size, bool extended)
+{
+    size_t bytes_written;
+    esp_err_t error;
+    if((error = i2s_channel_write(i2s_handler.tx_handler, data, item_size, &bytes_written, portMAX_DELAY)) != ESP_OK)
+    {
+        ESP_LOGE(I2S_TAG, "i2s_write has failed ");
+    }else{
+        ESP_LOGI(I2S_TAG, "i2s_write send %d bytes ", bytes_written);
+    }
+    return(bytes_written);
+}
+
+esp_err_t I2SInterface::uninstall_driver()
+{
+    esp_err_t error = ESP_OK;
+    error = i2s_channel_disable(i2s_handler.tx_handler);
+    i2s_del_channel(i2s_handler.tx_handler);
+    return(error);
+}
+
+esp_err_t I2SInterface::set_sample_channels()
+{
+    esp_err_t error = ESP_OK;
+    reconfigI2S();
+    return(error);
+}
+
+esp_err_t I2SInterface::clear_dma_buffer()
+{
+    esp_err_t error = ESP_OK;
+
+    return(error);
+}
+
+esp_err_t I2SInterface::start()
+{
+    esp_err_t error = ESP_OK;
+    error = i2s_channel_enable(i2s_handler.tx_handler);
+    return(error);
+}
+
+esp_err_t I2SInterface::stop()
+{
+    esp_err_t error = ESP_OK;
+    error = i2s_channel_disable(i2s_handler.tx_handler);
+    return(error);
+}
+
+void I2SInterface::set_sample_rate(uint32_t freq)
+{
+    sound_quality.sample_rate = freq;
+}
+
+void I2SInterface::set_bits_per_sample(i2s_data_bit_width_t bps)
+{
+    sound_quality.data_width = bps;
+}
+
+void I2SInterface::set_i2s_config(i2s_config i2s_config)
+{
+
+}
+
+esp_err_t I2SInterface::init_spp()
+{
+    esp_err_t error = ESP_OK;
+    spp_config = {
+        .mode = ESP_SPP_MODE_CB,
+        .enable_l2cap_ertm = true,
+        .tx_buffer_size = ESP_SPP_MIN_TX_BUFFER_SIZE
+    };
+    if((error = esp_spp_enhanced_init(&spp_config))!= ESP_OK)
+    {
+        ESP_LOGW(I2S_TAG,"SPP failed to initialise");
+    }else{
+        ESP_LOGI(I2S_TAG,"SPP initialised sucessfully");
+    }
+
+    return(error);
+}
+
+esp_err_t I2SInterface::get_sample_rate()
+{
+
+    return (ESP_OK);
+}
+
+esp_err_t I2SInterface::set_sample_rate()
+{
+    
+    return (ESP_OK);
+}
+
+uint8_t I2SInterface::get_role()
+{
+    return(i2s_handler.channel_configuration.role);
 }

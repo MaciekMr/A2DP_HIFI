@@ -10,12 +10,12 @@
 #include "soc/io_mux_reg.h"
 #include "sdkconfig.h"
 #include "BluetoothA2DPCommon.h"
-
+#include "II2Sinterface.h"
 
 #define BT_I2S "BT_I2S"
 #define BT_SPP "BT_SPP"
 
-enum i2s_output_type { INTERNAL = 0, EXTERNAL = 1};
+
 
 
 class I2SCommon

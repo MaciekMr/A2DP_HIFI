@@ -24,7 +24,8 @@
 //#include "driver/i2s_std.h"
 
 #include "driver/gpio.h"
-#include "I2SComon.h"
+//#include "I2SComon.h"
+#include "I2SInterface.h"
 #include "BluetoothA2DPCommon.h"
 #include "freertos/ringbuf.h"
 
@@ -121,15 +122,15 @@ class BluetoothA2DPSink
         volume_control()->set_mono_downmix(enabled);
     }
 
-    void set_pin_config(i2s_pin_config_t pin_config);
+    void set_pin_config(pin_configuration pin_config);
 
-    void set_i2s_port(i2s_port_t i2s_num);
+    //void set_i2s_port(i2s_port_t i2s_num);
 
-    void set_i2s_config(i2s_config_t i2s_config);
+    //void set_i2s_config(i2s_config_t i2s_config);
 
     void init_i2s();
 
-    esp_err_t i2s_mclk_pin_select(const uint8_t pin);
+    //esp_err_t i2s_mclk_pin_select(const uint8_t pin);
     ////////////
     //end of I2S configuration
     /////////////////////////////////////////////////////////////////
@@ -196,7 +197,7 @@ class BluetoothA2DPSink
     virtual void start(const char* name);
 
     /// Defines the bits per sample for output (if > 16 output will be expanded)
-    virtual void set_bits_per_sample(int bps) { i2s_common.set_bits_per_sample((i2s_bits_per_sample_t) bps); }
+    virtual void set_bits_per_sample(int bps) { i2s_common.set_bits_per_sample(bps); }
     //virtual void set_bits_per_sample(uint32_t bps) { i2s_config.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(bps); }
     
     /// Provides the actually set data rate (in samples per second)
@@ -300,7 +301,8 @@ class BluetoothA2DPSink
     //i2s_chan_config_t i2s_channel_config = I2S_CHANNEL_DEFAULT_CONFIG(i2s_port, I2S_ROLE_MASTER);;
     i2s_chan_handle_t tx_chan;
     */
-    I2SCommon i2s_common;
+    //I2SCommon i2s_common;
+    I2SInterface i2s_common;
 
     /// writes the data to i2s
     size_t i2s_write_data(const uint8_t* data, size_t item_size);
