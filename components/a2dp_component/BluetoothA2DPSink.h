@@ -24,8 +24,8 @@
 //#include "driver/i2s_std.h"
 
 #include "driver/gpio.h"
-//#include "I2SComon.h"
-#include "I2SInterface.h"
+#include "I2SComon.h"
+//#include "I2SInterface.h"
 #include "BluetoothA2DPCommon.h"
 #include "freertos/ringbuf.h"
 
@@ -302,7 +302,7 @@ class BluetoothA2DPSink
     i2s_chan_handle_t tx_chan;
     */
     //I2SCommon i2s_common;
-    I2SInterface i2s_common;
+    I2SCommon i2s_common;
 
     /// writes the data to i2s
     size_t i2s_write_data(const uint8_t* data, size_t item_size);

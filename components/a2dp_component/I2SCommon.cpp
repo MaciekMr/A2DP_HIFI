@@ -12,9 +12,14 @@ I2SCommon::~I2SCommon()
 
 }
 
-void I2SCommon::set_pin_config(i2s_pin_config_t pin_config)
+void I2SCommon::set_pin_config(pin_configuration pin_config)
 {
-    this->pin_config = pin_config;
+    this->pin_config = {
+        .bck_io_num = pin_config.bclk,  //bck
+        .ws_io_num = pin_config.ws,  //lrck
+        .data_out_num = pin_config.dout, //dout
+        .data_in_num = I2S_PIN_NO_CHANGE
+    };
 }
 
 void I2SCommon::set_i2s_port(i2s_port_t i2s_num)

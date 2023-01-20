@@ -1,4 +1,4 @@
-set(srcs "main.cpp")
+set(srcs "ControlQueue.cpp" "main.cpp")
 
 idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "."

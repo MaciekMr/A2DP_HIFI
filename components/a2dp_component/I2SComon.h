@@ -15,7 +15,12 @@
 #define BT_I2S "BT_I2S"
 #define BT_SPP "BT_SPP"
 
-
+struct pin_configuration{
+    int mclk;
+    int bclk;
+    int ws; //known as LRCK
+    int dout; //data out to external i2s device 
+};// pin_configuration_t;
 
 
 class I2SCommon
@@ -24,7 +29,8 @@ class I2SCommon
 protected:
 
     i2s_config_t i2s_config;
-    i2s_pin_config_t pin_config; 
+    i2s_pin_config_t pin_config;
+    //pin_configuration pin_config; 
   
     i2s_output_type i2s_output = EXTERNAL;
 
@@ -53,7 +59,7 @@ public:
     virtual i2s_bits_per_sample_t get_bits_per_sample();
 
     /// Define the pins
-    virtual void set_pin_config(i2s_pin_config_t pin_config);
+    virtual void set_pin_config(pin_configuration pin_config);
       
     /// Define an alternative i2s port other then 0 
     virtual void set_i2s_port(i2s_port_t i2s_num);

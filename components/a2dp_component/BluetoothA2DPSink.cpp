@@ -1176,7 +1176,8 @@ void ccall_av_hdl_a2d_evt(uint16_t event, void *param){
 
 size_t BluetoothA2DPSink::i2s_write_data(const uint8_t* data, size_t item_size){
     size_t i2s_bytes_written = 0;
-    if (this->i2s_common.get_role() & I2S_MODE_DAC_BUILT_IN) {
+    //if (this->i2s_common.get_role() & I2S_MODE_DAC_BUILT_IN) {
+    if (!this->i2s_common.get_i2s_output()) {
         // special case for internal DAC output, the incomming PCM buffer needs 
         // to be converted from signed 16bit to unsigned
         int16_t* data16 = (int16_t*) data;
@@ -1191,14 +1192,14 @@ size_t BluetoothA2DPSink::i2s_write_data(const uint8_t* data, size_t item_size){
         }
     } 
 
-    if (this->i2s_common.get_config().bits_per_sample == I2S_BITS_PER_SAMPLE_16BIT){
+    if (this->i2s_common.get_sample_rate() == I2S_DATA_BIT_WIDTH_16BIT){
         // standard logic with 16 bits
         //if (i2s_write(i2s_port,(void*) data, item_size, &i2s_bytes_written, portMAX_DELAY)!=ESP_OK){
         if (i2s_common.i2s_write_data(data, item_size)!=ESP_OK){
             ESP_LOGE(BT_AV_TAG, "i2s_write has failed");    
         }
     } else {
-        if (this->i2s_common.get_config().bits_per_sample > 16){
+        if (this->i2s_common.get_sample_rate() > 16){
             // expand e.g to 32 bit for dacs which do not support 16 bits
             if (i2s_common.i2s_write_data(data, item_size, true) != ESP_OK){
                 ESP_LOGE(BT_AV_TAG, "i2s_write has failed");    

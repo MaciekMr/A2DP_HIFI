@@ -7,16 +7,19 @@ I2SInterface::I2SInterface()
 {
     i2s_handler = {0};
     sound_quality = {
-        .sample_rate = 48000,
-        .data_width = I2S_DATA_BIT_WIDTH_32BIT,
+        .sample_rate = 44100,
+        .data_width = I2S_DATA_BIT_WIDTH_16BIT,
         .mode = I2S_SLOT_MODE_STEREO
     };
+    handler_enabled = false;
+
 }
 
 I2SInterface::~I2SInterface()
 {
     /* Have to stop the channel before deleting it */
     i2s_channel_disable(i2s_handler.tx_handler);
+    handler_enabled = false;
     /* If the handle is not needed any more, delete it to release the channel resources */
     i2s_del_channel(i2s_handler.tx_handler);
 }
@@ -62,26 +65,40 @@ void I2SInterface::init_i2s()
         //};
     //};
     ESP_ERROR_CHECK(error = i2s_channel_init_std_mode(i2s_handler.tx_handler, &i2s_handler.i2s_configuration));
+    if(error != ESP_OK)
+    {
 
+    }else{
+
+    }
 }
 
 void I2SInterface::reconfigI2S()
 {
     esp_err_t error;
+    ESP_LOGI(I2S_TAG, "Reconfiguration initiated");
     i2s_channel_disable(i2s_handler.tx_handler);
-    if((error = i2s_channel_reconfig_std_slot(i2s_handler.tx_handler, &i2s_handler.i2s_configuration.slot_cfg)) != ESP_OK) //one call for each channel (slot -> channel)
+    handler_enabled = false;
+
+    i2s_handler.i2s_configuration.clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sound_quality.sample_rate);
+    i2s_handler.i2s_configuration.slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, sound_quality.mode);
+    error = i2s_channel_reconfig_std_clock(i2s_handler.tx_handler, &i2s_handler.i2s_configuration.clk_cfg);
+    error = i2s_channel_reconfig_std_slot(i2s_handler.tx_handler, &i2s_handler.i2s_configuration.slot_cfg);
+
+    if(error != ESP_OK) //one call for each channel (slot -> channel)
     {
         ESP_LOGE(I2S_TAG, "i2s_channel reconfig failed");
     }
     i2s_channel_enable(i2s_handler.tx_handler);
+    handler_enabled = true;
 }
 
 esp_err_t I2SInterface::init_i2s_driver()
 {
-    esp_err_t error;
-    if((error = i2s_channel_enable(i2s_handler.tx_handler)) != ESP_OK)
-        ESP_LOGE(I2S_TAG, "Enable channel has failed!");
-    
+    esp_err_t error = ESP_OK;
+    //if((error = i2s_channel_enable(i2s_handler.tx_handler)) != ESP_OK)
+    //    ESP_LOGE(I2S_TAG, "Enable channel has failed!");
+    ESP_LOGI(I2S_TAG, "TX handler status %s", handler_enabled ? "true" : "false");
     return (error);
 }
 
@@ -89,19 +106,22 @@ size_t I2SInterface::i2s_write_data(const uint8_t* data, size_t item_size, bool 
 {
     size_t bytes_written;
     esp_err_t error;
+    if(!handler_enabled)
+        ESP_LOGI(I2S_TAG, "TX handler status %s", handler_enabled ? "true" : "false");
     if((error = i2s_channel_write(i2s_handler.tx_handler, data, item_size, &bytes_written, portMAX_DELAY)) != ESP_OK)
     {
         ESP_LOGE(I2S_TAG, "i2s_write has failed ");
-    }else{
-        ESP_LOGI(I2S_TAG, "i2s_write send %d bytes ", bytes_written);
+    //}else{
+    //    ESP_LOGI(I2S_TAG, "i2s_write send %d bytes ", bytes_written);
     }
-    return(bytes_written);
+    return(error);
 }
 
 esp_err_t I2SInterface::uninstall_driver()
 {
     esp_err_t error = ESP_OK;
     error = i2s_channel_disable(i2s_handler.tx_handler);
+    handler_enabled = false;
     i2s_del_channel(i2s_handler.tx_handler);
     return(error);
 }
@@ -123,7 +143,14 @@ esp_err_t I2SInterface::clear_dma_buffer()
 esp_err_t I2SInterface::start()
 {
     esp_err_t error = ESP_OK;
-    error = i2s_channel_enable(i2s_handler.tx_handler);
+    if(!handler_enabled)
+    {
+        ESP_LOGI(I2S_TAG, "TX handler status %s", handler_enabled ? "true" : "false");
+        error = i2s_channel_enable(i2s_handler.tx_handler);
+        handler_enabled = true;
+    }else{
+        ESP_LOGI(I2S_TAG, "TX handler status %s", handler_enabled ? "true" : "false");
+    }
     return(error);
 }
 
@@ -131,6 +158,7 @@ esp_err_t I2SInterface::stop()
 {
     esp_err_t error = ESP_OK;
     error = i2s_channel_disable(i2s_handler.tx_handler);
+    handler_enabled = false;
     return(error);
 }
 
@@ -142,6 +170,11 @@ void I2SInterface::set_sample_rate(uint32_t freq)
 void I2SInterface::set_bits_per_sample(i2s_data_bit_width_t bps)
 {
     sound_quality.data_width = bps;
+}
+
+i2s_data_bit_width_t I2SInterface::get_bits_per_sample()
+{
+    return(sound_quality.data_width);
 }
 
 void I2SInterface::set_i2s_config(i2s_config i2s_config)
@@ -167,19 +200,24 @@ esp_err_t I2SInterface::init_spp()
     return(error);
 }
 
-esp_err_t I2SInterface::get_sample_rate()
+uint16_t I2SInterface::get_sample_rate()
 {
-
-    return (ESP_OK);
+    return (sound_quality.sample_rate);
 }
 
-esp_err_t I2SInterface::set_sample_rate()
-{
-    
-    return (ESP_OK);
-}
 
 uint8_t I2SInterface::get_role()
 {
     return(i2s_handler.channel_configuration.role);
+}
+
+void I2SInterface::set_i2s_output(bool out)
+{
+    //is_i2s_output = out;
+    i2s_output = out?EXTERNAL:INTERNAL;
+}
+
+bool I2SInterface::get_i2s_output()
+{
+    return(i2s_output);
 }

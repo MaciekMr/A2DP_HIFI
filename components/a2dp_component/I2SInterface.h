@@ -1,3 +1,4 @@
+#pragma once
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/i2s_types.h"
@@ -20,13 +21,24 @@
 I2S has to be used in standard mode to send data to external 
 foraudio we can use only audio clock: i2s_clock_src_t::I2S_CLK_SRC_APLL
 */
+/*
+typedef enum {
+    I2S_BITS_PER_CHAN_DEFAULT        = (0),      // *!< channel bit-width equals to data bit-width 
+    I2S_BITS_PER_CHAN_8BIT           = (8),      // *!< channel bit-width: 8 
+    I2S_BITS_PER_CHAN_16BIT          = (16),     // *!< channel bit-width: 16 
+    I2S_BITS_PER_CHAN_24BIT          = (24),     // *!< channel bit-width: 24 
+    I2S_BITS_PER_CHAN_32BIT          = (32),     // *!< channel bit-width: 32 
+} i2s_bits_per_chan_t;
+
+*/
+
 
 struct pin_configuration{
     int mclk;
     int bclk;
     int ws; //known as LRCK
     int dout; //data out to external i2s device 
-}pin_configuration_t;
+};// pin_configuration_t;
 
 
 struct i2s_config{
@@ -51,7 +63,9 @@ class I2SInterface
 protected:
     i2s_handler_t    i2s_handler;
     sound_quality_t  sound_quality;
-    esp_spp_cfg_t spp_config;
+    esp_spp_cfg_t    spp_config;
+    i2s_output_type  i2s_output = EXTERNAL;
+    bool             handler_enabled;
 
 public:
     I2SInterface();
@@ -71,6 +85,8 @@ public:
     virtual void set_sample_rate(uint32_t freq);
 
     virtual void set_bits_per_sample(i2s_data_bit_width_t bps);
+
+    virtual i2s_data_bit_width_t get_bits_per_sample();
 
     virtual esp_err_t uninstall_driver();
 
@@ -92,9 +108,7 @@ public:
 
     esp_err_t init_spp();
 
-    esp_err_t get_sample_rate();
-
-    esp_err_t set_sample_rate();
+    uint16_t get_sample_rate();
 
     uint8_t get_role();
 
